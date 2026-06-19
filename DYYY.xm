@@ -11455,6 +11455,26 @@ static Class TagViewClass = nil;
 
 %hook AWELandscapeFeedEntryView
 
+static const CGFloat kDYYYLandscapeEntryFullScreenShiftY = 30.0;
+
+static BOOL DYYYLandscapeEntryShouldApplyFullScreenShift(void) {
+    return DYYYGetBool(@"DYYYEnableFullScreen") && !DYYYGetBool(@"DYYYRemoveEntry") && !DYYYGetBool(@"DYYYHideEntry");
+}
+
+- (void)setFrame:(CGRect)frame {
+    if (DYYYLandscapeEntryShouldApplyFullScreenShift()) {
+        frame.origin.y += kDYYYLandscapeEntryFullScreenShiftY;
+    }
+    %orig(frame);
+}
+
+- (void)setCenter:(CGPoint)center {
+    if (DYYYLandscapeEntryShouldApplyFullScreenShift()) {
+        center.y += kDYYYLandscapeEntryFullScreenShiftY;
+    }
+    %orig(center);
+}
+
 - (void)setAlpha:(CGFloat)alpha {
     BOOL isApplyingGlobal = (dyyyGlobalTransparencyMutationDepth > 0);
     if (!isApplyingGlobal) {
@@ -11500,31 +11520,16 @@ static Class TagViewClass = nil;
         return;
     }
 
-    static const CGFloat kDYYYLandscapeEntryFullScreenShiftY = 15.0;
-    BOOL enableFullScreen = DYYYGetBool(@"DYYYEnableFullScreen");
-
-    for (UIView *subview in self.subviews) {
-        if (enableFullScreen) {
-            CGAffineTransform targetTransform = CGAffineTransformMakeTranslation(0, kDYYYLandscapeEntryFullScreenShiftY);
-            if (!CGAffineTransformEqualToTransform(subview.transform, targetTransform)) {
-                subview.transform = targetTransform;
-            }
-        } else if (!CGAffineTransformIsIdentity(subview.transform)) {
-            subview.transform = CGAffineTransformIdentity;
-        }
+    if (DYYYLandscapeEntryShouldApplyFullScreenShift() && self.superview) {
+        [self.superview bringSubviewToFront:self];
     }
 
     NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
     CGFloat scale = scaleValue.length > 0 ? [scaleValue floatValue] : 1.0;
-    CGAffineTransform transform = CGAffineTransformIdentity;
     if (scale > 0 && scale != 1.0) {
-        transform = CGAffineTransformMakeScale(scale, scale);
-    }
-    if (enableFullScreen) {
-        transform = CGAffineTransformTranslate(transform, 0, kDYYYLandscapeEntryFullScreenShiftY);
-    }
-    if (!CGAffineTransformEqualToTransform(self.transform, transform)) {
-        self.transform = transform;
+        self.transform = CGAffineTransformMakeScale(scale, scale);
+    } else {
+        self.transform = CGAffineTransformIdentity;
     }
 }
 
